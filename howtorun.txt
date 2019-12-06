@@ -1,0 +1,1 @@
+g++ -std=c++11 main.cpp file.cpp filepermissions.cpp shellfile.cpp user.cpp

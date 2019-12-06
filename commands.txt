@@ -1,0 +1,38 @@
+useradd <username>
+Creates a new user and adds them to the Users group (and sets Users as their primary group)
+
+useradd -G <group[,group]> <username>
+Creates a new user and adds them to the Users group (and sets Users as their primary group). Also adds the user to the additional groups indicated (if a group doesn’t exist, the command will still function for other groups, but should notify the user of the non-existent group). Note: there should be no whitespace in the comma separated group list
+
+chuser <username>
+Change the active user to the one indicated. Fails if: the user doesn’t exist
+
+groupadd <group>
+Creates a new group and adds the Root user to the group
+
+usermod -g <group> <username>
+Set the primary group for the indicated user. Fails if: the user doesn’t exist, the group doesn’t exist, or the user not part of the group
+
+usermod -a -G <group> <username>
+Add the indicated user to the indicated group. Fails if: the user doesn’t exist or the group doesn’t exist
+
+chown <username> <object>
+Change the owner of the indicated object (file, directory) to the indicated user. Fails if: the active user doesn’t have write permission on the object, the indicated object doesn’t exist, the indicated user doesn’t exist
+
+chgrp <group> <object>
+Change the group of the indicated object (file, directory) to the indicated group. Fails if: the active user doesn’t have write permission on the object, the indicated object doesn’t exist, the indicated user doesn’t exist
+
+userdel -G <group> <username>
+Remove the indicated user from the indicated group. Fails if: the user doesn’t exist, the group doesn’t exist, the user not part of the group, the group is Users,  the user is Root
+
+userdel <username>
+Remove the user from the system (any owned objects become owned by the Root user). Fails if: the user doesn’t exist or the user indicated is Root
+
+groupdel <group>
+Remove the group from the system (any objects with permissions for this group are changed to the Users group). Fails if: the group doesn’t exist or the group indicated is Users
+
+groups <username>
+List the groups that the indicated user is part of. Fails if: the user doesn’t exist
+
+users
+List the users known to the system.
