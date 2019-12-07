@@ -20,7 +20,7 @@ void run(string command);
 
 int main() {
 
-    //starting screen
+    //starting screen to output all available commands
     cout << "----------------------------------------------------------------------------" << endl;
     cout << "----------------------------------------------------------------------------" << endl;
     cout << "Shell Emulator by Tanner Hermann" << endl;
@@ -55,7 +55,8 @@ int main() {
     cout << "\tCreates a new user and adds them to the Users group (and sets Users as their primary group)\n" << endl;
 
     cout << "useradd -G <group[,group]> <username>" << endl;
-    cout << "\tCreates a new user and adds them to the Users group (and sets Users as their primary group). Also adds the user to the additional groups indicated\n" << endl;
+    cout << "\tCreates a new user and adds them to the Users group (and sets Users as their primary group). " 
+         << "\nAlso adds the user to the additional groups indicated\n" << endl;
 
     cout << "chuser <username>" << endl;
     cout << "\tChange the active user to the one indicated.\n" << endl;
@@ -63,12 +64,10 @@ int main() {
     cout << "groupadd <group>" << endl;
     cout << "\tCreates a new group and adds the Root user to it.\n" << endl;
 
-    /*
-    // TODO: IMPLEMENT THIS FUNCTION
-
+    //does not actually set as primary group
+    //
     cout << "usermod -g <group> <username>" << endl;
     cout << "\tSet the primary group for the indicated user.\n" << endl;
-    */
 
     cout << "usermod -a -G <group> <username>" << endl;
     cout << "\tAdd the user to the group.\n" << endl;
@@ -85,12 +84,8 @@ int main() {
     cout << "userdel -G <group> <username>" << endl;
     cout << "\tRemove the indicated user from the indicated group.\n" << endl;
 
-
-    /*
-    //!! NEED TO IMPLEMENT
     cout << "groupdel <group>" << endl;
     cout << "\tRemove the group from the system.\n" << endl;
-    */
 
     cout << "groups <username>" << endl;
     cout << "\tList the groups that the indicated user is in.\n" << endl;
@@ -99,7 +94,19 @@ int main() {
     cout << "\tLists all users of the system.\n" << endl;
 
     cout << "./<file>" << endl;
-    cout <<"\t\"Runs\" the indicated file\n" << endl;
+    cout << "\t\"Runs\" the indicated file\n" << endl;
+
+
+
+    cout << "kill <file>" << endl;
+    cout << "\tTerminates a running process prematurely.\n" << endl;
+
+    cout << "ps" << endl;
+    cout << "\tDisplays all running files and processes.\n" << endl;
+
+
+    cout << "schedHist" << endl;
+    cout << "\tOutputs the scheduling history.  Displays the timestep and process. (Case sensitive).\n" << endl;
 
     cout << "quit | exit" << endl;
     cout << "\tExit the shell emulator.\n" << endl;
@@ -115,31 +122,30 @@ int main() {
 
 void prompt(Shell newShell)
 {
-
-
     // Shell variables
     string fname;
     vector<Process> procList;
     vector<ProcessHist> procHist;
 
-    int curTime = 0, procIdx;
-    int numProcs = 0;
+    int curTime = 0; //curTime increments by 1 each time a new command is entered
+    int procIdx; //processIdx keeps track of which process is to be scheduled next
+    int numProcs = 0; //number of processes that are waiting to be scheduled
     int timeQuantum = 1; //default time quantum of 1 for round robin scheduling
     bool done = true;
     string tempStr;
 
-    int procHistSize = 0;
+    int procHistSize = 0; //number of timesteps that a process has been run
 
     string comm = "";
 
     bool runShell = true;
 
-    //run shell until 'quit' or 'exit'
+    //run shell until 'quit' or 'exit' command is issued
     while(runShell) {
 
         numProcs = procList.size();
 
-        //idea: make this actually change with user
+        //get the current username to display on the command prompt
         string currentuser = newShell.current_user->getName();
         cout << currentuser << "$ "; getline(cin,comm);
 
@@ -178,6 +184,7 @@ void prompt(Shell newShell)
                     int indexing = procList.size() - 1;
                     procList[indexing].id = fname; //sets the name of the process in the process list
                     procList[indexing].startTime = curTime; //start time of the process is set to when the process is scheduled
+                    //TODO: Access the runtime set instead of assigning it here
                     procList[indexing].totalTimeNeeded = 10; // Right now this is set to 10 until i figure out how to access the
                                                             // scheduled time from when the file was created 
                 }
@@ -188,14 +195,55 @@ void prompt(Shell newShell)
         }
         else if(comm == "schedHist")
         {
-            cout << endl;
+            cout << "--------------------" << endl;
+            cout << "TimeStep - ProcessID" << endl;
+            cout << "--------------------" << endl;
             for(int i = 0; i < procHist.size(); i++)
             {
                 cout << procHist[i].time << " - " << procHist[i].id << endl;
             }
         }
+        else if(comm.substr(0,4) == "kill")
+        {
+            string fileName = comm;
+            fileName = fileName.substr(5);
+            bool killFileExists = false;
+            int killIndex = 0;
+            if(!done)
+            {
+                //iterate through the process list to find if the file is running
+                for(int i = 0; i < procList.size(); i++)
+                {
+                    if(procList[i].id == fileName)
+                    {
+                        killFileExists = true;
+                        killIndex = i;
+                    }
+                }
+                //If the file is running then remove it from the process list
+                if(killFileExists) { procList.erase(procList.begin() + killIndex); }
+                else { cout << "ERROR: NO FILE WITH INDICATED NAME RUNNING" << endl; }
+            }
+        }
+        else if(comm == "ps")
+        {
+            cout << "---------------------------------------------------------\n"
+                 << "ProcessID - Time Started - Time Needed - Time Scheduled\n" 
+                 << "---------------------------------------------------------\n" << endl;
+            for(int i = 0; i < procList.size(); i++)
+            {
+                if(!procList[i].isDone) 
+                {
+                    //need to output the owner of the file as well
+                    cout << procList[i].id << "\t" << "\t\t" << procList[i].startTime 
+                    << "\t\t" << procList[i].totalTimeNeeded 
+                    << "\t\t" << procList[i].timeScheduled << endl; 
+                }
+            }
+        }
 
-
+        //If not all processes are finished then the scheduler is called
+        //Also makes a note of the timestep of a process being run to be shown by schedHist
         if(!done) 
         { 
             procIdx = RoundRobin(curTime, procList, timeQuantum);

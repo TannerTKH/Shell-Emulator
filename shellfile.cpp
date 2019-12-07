@@ -34,16 +34,18 @@ string invalid_command = "ERROR invalid command.";
 //sets up initial directory and structure
 Shell::Shell() {
 
-    //setup root user properties
+    //setup root
     root.setName("root");
     root.setFile(false);
     root.setParent(NULL);
     curDir = &root;
 
     //set up starting user properties
-    default_user.setName("tanner");
+    default_user.setName("root");
     current_user = &default_user;
+    
     users.push_back(default_user);
+
     s_groups.push_back("users");
 
 }
@@ -64,25 +66,30 @@ void Shell::process(string& comm) {
         else if(cmd[0] == "rm") { rm(cmd); }
         else if(cmd[0] == "touch") { touch(cmd); }
         else if(cmd[0] == "chmod") { chmod(cmd); }
+
+        //User related commands
         else if(cmd[0] == "useradd") {useradd(cmd); }
         else if(cmd[0] == "usermod" ) { usermod(cmd); }
         else if(cmd[0] == "userdel") {userdel(cmd); }
         else if(cmd[0] == "chuser") {chuser(cmd); }
-        else if(cmd[0] == "chown" ) { chown(cmd); }
-        else if(cmd[0] == "chgrp" ) { chgrp(cmd); }
-
-        
-
-        else if(cmd[0] == "groups") { groups(cmd); }
-        else if(cmd[0] == "groupadd") {groupadd(cmd);}
-
         else if(cmd[0] == "users") { listusers(cmd); }
+
+        else if(cmd[0] == "chown" ) { chown(cmd); }
+
+        //Group related commands
+        else if(cmd[0] == "chgrp" ) { chgrp(cmd); }
+        else if(cmd[0] == "groups") { groups(cmd); }
+        else if(cmd[0] == "groupadd") { groupadd(cmd);}
+        else if(cmd[0] == "groupdel") { groupdel(cmd); }
+
+
 
 
         //scheduling commands moved to main.cpp
         else if(cmd[0] == "kill") { return; }
         else if(cmd[0] == "ps") { return; }
         else if(cmd[0] == "schedHist") { return; }
+        //execution command
         else if(cmd[0].substr(0,2) == "./") { return; }
 
         else if(cmd[0] == "quit" ) { return; }
@@ -215,6 +222,7 @@ void Shell::cd(vector<string> comm)
           target->setParent(curDir);
           curDir = target;
         }
+        else { cout << "USER DOES NOT HAVE PERMISSION" << endl; }
 
       }
     }
@@ -351,7 +359,6 @@ void Shell::touch(vector<string> comm) {
             //Generate a random number between 10-50 to set as the runtime for a newly created file
             srand(time(NULL));
             int runtime = rand()%40 + 10;
-            //cout << runtime << endl;
             File new_file(fileName, true, current_user->getName(), current_user->getGroup());
             new_file.setParent(curDir);
             new_file.setRunTime(runtime);
@@ -386,15 +393,14 @@ void Shell::useradd(vector<string> comm)
       string username = comm[3];
 
       vector<User>::iterator x;
+      //checks to make sure a user with the indicated username doesnt already exist
+
       x = find_if(users.begin(), users.end(), [&username](User const& target) { return (target.getName() == username); });
 
       if(x == users.end())
       {
         vector<string> result;
         parseGroups(comm[2], result);
-        /// need to check if group actually exists
-        /// TODO: !!!
-        /// can be done using iterator and find_if
         users.push_back(User(username, result));
       }
       else { cout << " USER ALREADY EXISTS " << endl; }
@@ -407,6 +413,7 @@ void Shell::useradd(vector<string> comm)
       string username = comm[1];
 
       vector<User>::iterator x;
+      //checks to find out if a user with indicated username already exists
       x = find_if(users.begin(), users.end(), [&username](User const& target) { return (target.getName() == username); });
       if(x == users.end()) { users.push_back(User(username)); }
       else { cout << " USER ALREADY EXISTS " << endl; return; }
@@ -419,8 +426,6 @@ void Shell::useradd(vector<string> comm)
 
 }
 
-
-// !!! CURRENTLY DOES NOT SUPPORT usermod -g  <group> <user>
 void Shell::usermod(vector<string> comm)
 {
   if(comm.size() == 4) 
@@ -436,7 +441,23 @@ void Shell::usermod(vector<string> comm)
     }
     else { cout << invalid_usermod << endl; return; }
   }
-  else if(comm.size() != 4) { cout << invalid_usermod << endl; return; }
+  else if(comm.size() == 3)
+  {
+    //TODO: change this to actually set as primary group
+    //TODO: Check if user is a member of the group already
+    if(comm[1] == "-g")
+    {
+      string addgrp = comm[2];
+      vector<string>::iterator x;
+      x = find_if(s_groups.begin(), s_groups.end(), [&addgrp](string const& target) { return(target == addgrp); });
+
+      if(x != s_groups.end()) { current_user->setGroup(addgrp); }
+      else { cout << "GROUP DOES NOT EXIST" << endl; }
+    }
+    else { cout << invalid_usermod << endl; return; }
+
+  }
+  else { cout << invalid_usermod << endl; return; }
 
   return;
 
@@ -451,10 +472,11 @@ void Shell::userdel(vector<string> comm)
       if(comm.size() != 4) {cout << invalid_userdel << endl; return; }
 
       string username = comm[3];
+      //make sure that command isnt trying to remove the root user
+      if(username == default_user.getName()) { cout << "ERROR cannot remove root user" << endl; return; }
       vector<User>::iterator x;
 
       x = find_if(users.begin(), users.end(), [&username](User const& target) { return (target.getName() == username); });
-
 
       if( x != users.end())
       {
@@ -474,6 +496,8 @@ void Shell::userdel(vector<string> comm)
       if(comm.size() != 2) { cout << invalid_userdel << endl; return; }
 
       string username = comm[1]; 
+      //make sure that the command isnt tryint to remove the root user
+      if(username == default_user.getName()) { cout << "ERROR cannot remove root user" << endl; return; }
       vector<User>::iterator x;
       x = find_if(users.begin(), users.end(), [&username](User const& target) { return (target.getName() == username); });
 
@@ -520,17 +544,16 @@ void Shell::listusers(vector<string> comm)
     }
     cout << endl; 
   }
-  else { cout << "ERROR" << endl; return; }
+  else { cout << "ERROR: invalid users command." << endl; return; }
 
   return;
 }
+
 
 /* 
 
     | GROUP COMMANDS
 
-
-    TODO: ADD groupdel
 */
 
 
@@ -553,8 +576,35 @@ void Shell::groupadd(vector<string> comm)
 
 }
 
+//deletes the group but users still show up as being in the group 
+void Shell::groupdel(vector<string> comm)
+{
+  if(comm.size() == 2)
+  {
+    string grpdel = comm[1];
+    //make sure that the users group isnt trying to be removed
+    if(grpdel == "Users" || grpdel == "users")
+    {
+      cout << "ERROR: CANNOT REMOVE THE USERS GROUP." << endl;
+    }
+    else 
+    {
+      vector<string>::iterator x;
 
-//list all users
+      x = find_if(s_groups.begin(), s_groups.end(), [&grpdel](string const& target) {return (target == grpdel); });
+
+      //TODO: go through and remove the group from each user
+      if(x != s_groups.end())
+      {
+        s_groups.erase(s_groups.begin() + (distance(s_groups.begin(), x)));
+      }
+      else { cout << "ERROR: GROUP DOES NOT EXIST" << endl; }
+    }
+  }
+  else { cout << invalid_groupdel << endl; return; }
+  return;
+}
+
 void Shell::groups(vector<string> comm)
 {
   if(comm.size() == 1) 
@@ -568,9 +618,7 @@ void Shell::groups(vector<string> comm)
   else { cout << invalid_groups << endl; return; }
   
   return;
-
 }
-
 
 void Shell::chgrp(vector<string> comm)
 {
@@ -590,6 +638,7 @@ void Shell::chgrp(vector<string> comm)
 
       if(f != curDir->files.end())
       {
+        //make sure that the user has permission
         if(checkIfUserHasPermissions(*f, 1))
         {
           target_prop = curDir->files[distance(curDir->files.begin(), f)].getProp();
@@ -606,13 +655,6 @@ void Shell::chgrp(vector<string> comm)
 
   return; 
 }
-
-
-
-
-
-
-/////
 
 /////
 
@@ -636,6 +678,7 @@ void Shell::chown(vector<string> comm)
 
       if( f != curDir->files.end())
       {
+        //make sure that the issuer of the command has the proper permissions for this command
         if(checkIfUserHasPermissions(*f, 1))
         {
           target_prop = curDir->files[distance(curDir->files.begin(), f)].getProp();
@@ -653,42 +696,3 @@ void Shell::chown(vector<string> comm)
 
   return;
 }
-
-
-/*
-
-// moved to main.cpp 
-
-void Shell::run(vector<string> comm)
-{
-  if(comm.size() == 1)
-  {
-    string fname = comm[0];
-    fname = fname.substr(2);
-    int index = -1;
-    bool found = false;
-
-    for(int i = 0; i < curDir->files.size(); i++) 
-    {
-      if((curDir->files[i].getName() == fname) && (curDir->files[i].getFile()))
-      {
-        found = true;
-        index = i;
-        break;
-      }
-    }
-
-    if(found == false) {cout << "FILE DOES NOT EXIST" << endl; return; }
-    else
-    {
-      if(checkIfUserHasPermissions(curDir->files[index], 2)) { cout << fname << " executed" << endl; }
-      else {cout << "invalid execute permissions" << endl; return; }
-    }  
-  }
-  else { cout << invalid_run << endl; return; }
-
-
-  return; 
-}
-
-*/

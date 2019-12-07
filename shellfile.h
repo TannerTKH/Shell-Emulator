@@ -78,6 +78,7 @@ class Shell
         void chgrp(vector<string> comm);
         void groups(vector<string> comm);
         void groupadd(vector<string> comm);
+        void groupdel(vector<string> comm);
 
 
 
@@ -90,10 +91,8 @@ class Shell
 
 
 
-        //wip
         void listusers(vector<string> comm);
 
-        void groupdel(vector<string> comm);
 };
 
 #endif

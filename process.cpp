@@ -28,7 +28,7 @@ int RoundRobin(const int& curTime, const vector<Process>& procList, const int& t
             ready.push_back(ready[0]);
         }
 
-        //remove the process from the front of the ready queue and reset time until next schedulign
+        //remove the process from the front of the ready queue and reset time until next scheduling
         ready.pop_front();
         timeToNextSched = timeQuantum;
     }

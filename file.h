@@ -31,7 +31,7 @@ struct Properties
         //defualt file properties
 
         //default linux permissions 
-        permissions.setPerms(644);
+        permissions.setPerms(755); //changed from 644 to 755
         links = 1;
         owner = "tanner";
         group = "users";
