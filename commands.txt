@@ -1,3 +1,24 @@
+ls <-l>
+List contents of current directory, -l provides attribute details of contents.
+
+pwd
+Print the full path the the current working directory.
+
+cd DIRECTORY_NAME
+Change directory.
+
+rmdir DIRECTORY_NAME
+Removes a directory.
+
+rm FILE_NAME
+Removes file from the current directory
+
+chmod NUMERIC_PERMISSION_STRING FILE_OR_DIRECTORY_NAME
+Changes permissions of a file or directory.
+
+touch FILE_NAME
+Update modification date of a file or direcotry or create a new file.
+
 useradd <username>
 Creates a new user and adds them to the Users group (and sets Users as their primary group)
 
